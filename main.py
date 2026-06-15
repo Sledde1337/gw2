@@ -1,18 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from pydantic import BaseModel
-from database import Base, engine
+from sqlalchemy.orm import Session
+from database import Base, engine, get_db
+from schemas import BuildCreate, BuildResponse
 import models
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-class Build(BaseModel):
-    name: str
-    profession: str
-    description: str | None = None
-
-builds = []
 
 @app.get("/")
 def root():
@@ -22,12 +17,14 @@ def root():
 def health():
     return {"status": "ok"}
 
-@app.post("/builds")
-def create_build(build: Build):
-    builds.append(build)
-    return build
+@app.post("/builds", response_model=BuildResponse)
+def create_build(build: BuildCreate, db: Session = Depends(get_db)):
+    db_build = models.Build(**build.dict())
+    db.add(db_build)
+    db.commit()
+    db.refresh(db_build)
+    return db_build
 
-@app.get("/builds")
-def get_builds():
-    return builds
-
+@app.get("/builds", response_model=list[BuildResponse])
+def read_builds(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.Build).offset(skip).limit(limit).all()
