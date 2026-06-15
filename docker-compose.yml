@@ -1,0 +1,10 @@
+services:
+  db:
+    image: postgres:16
+    container_name: gw2-db
+    environment:
+      POSTGRES_USER: gw2
+      POSTGRES_PASSWORD: gw2
+      POSTGRES_DB: gw2builds
+    ports:
+      - "5432:5432"
